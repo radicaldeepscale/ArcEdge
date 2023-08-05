@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Lighting</title>
+    <style>
+        body {
+           // background-image: url(vp.png);
+          //  background-size: cover;
+        //    background-repeat: no-repeat;
+            background-color: indigo;
+            padding-top: 50px;
+            margin: 0;
+        }
+        canvas {
+            display: block;
+        }
+        #colorPickers {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .colorPicker {
+            margin: 0 10px;
+            width: 50px;
+            height: 30px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .colorPickerLabel {
+            color: white;
+            margin-right: 10px;
+        }
+        .sphereLabel {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+        }
+        .labelStem {
+            position: absolute;
+            background-color: white;
+            width: 2px;
+            height: 30px;
+            pointer-events: none;
+        }
+        h1 {
+            padding-top: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* Style for the header div */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+        }
+
+        /* Style for the export button */
+        #exportButton {
+          margin-left: 20px;
+            padding: 10px 20px;
+            background-color: deepskyblue;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Adjust button position for smaller screens */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: center;
+            }
+            #exportButton {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    
+    <div id="colorPickers">
+        <span class="colorPickerLabel">Neutron Color:</span>
+        <!-- First color picker - Neutron color -->
+        <input class="colorPicker" type="color" id="neutronColorPicker" value="deepskyblue">
+        <span class="colorPickerLabel">Proton Color:</span>
+        <!-- Second color picker - Proton color -->
+        <input class="colorPicker" type="color" id="protonColorPicker" value="lightgray">
+        <span class="colorPickerLabel">Electron Color:</span>
+        <!-- Third color picker - Electron color -->
+        <input class="colorPicker" type="color" id="electronColorPicker" value="#D2691E">
+    </div>
+        <div class="header">
+        <h1>Hydrogen</h1>
+        <!-- Add the export button -->
+        <button id="exportButton">Export as PNG</button>
+    </div>
+    <canvas id="webglCanvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+            camera.position.z = 15;
+
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webglCanvas'), antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+
+            const neutronGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+            const neutronMaterial = new THREE.MeshPhongMaterial({
+                color: 'deepskyblue',
+                shininess: 100
+            });
+            const neutronMesh = new THREE.Mesh(neutronGeometry, neutronMaterial);
+            scene.add(neutronMesh);
+
+            const protonGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const protonMaterial = new THREE.MeshPhongMaterial({
+                color: 'lightgray',
+                shininess: 100
+            });
+            const protonMesh = new THREE.Mesh(protonGeometry, protonMaterial);
+            scene.add(protonMesh);
+
+            const electronGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const electronMaterial = new THREE.MeshPhongMaterial({
+                color: '#D2691E',
+                shininess: 100
+            });
+            const electronMesh = new THREE.Mesh(electronGeometry, electronMaterial);
+            scene.add(electronMesh);
+
+            neutronMesh.position.set(-1.2, 0, 0);
+            protonMesh.position.set(1.2, 0, 0);
+
+            const trajectoryPoints = [];
+            const pathRadius = 4;
+            for (let i = 0; i <= 360; i += 10) {
+                const angle = i * Math.PI / 180;
+                const x = pathRadius * Math.cos(angle);
+                const y = pathRadius * Math.sin(angle);
+                trajectoryPoints.push(new THREE.Vector3(x, y, 0));
+            }
+
+            const trajectoryCurve = new THREE.CatmullRomCurve3(trajectoryPoints);
+            const tubeGeometry = new THREE.TubeGeometry(trajectoryCurve, 100, 0.05, 10, false);
+            const tubeMaterial = new THREE.MeshPhongMaterial({ color: '#FFFFFF', shininess: 100, opacity: 0.2, transparent: true });
+            const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
+            scene.add(tubeMesh);
+
+            const light1 = new THREE.PointLight('yellow', 1.5);
+            light1.position.set(10, 10, 10);
+            scene.add(light1);
+
+            const light2 = new THREE.PointLight('blue', 1.5);
+            light2.position.set(-10, -10, -10);
+            scene.add(light2);
+
+            neutronMesh.castShadow = true;
+            protonMesh.castShadow = true;
+            electronMesh.castShadow = true;
+            tubeMesh.castShadow = true;
+            light1.castShadow = true;
+            light2.castShadow = true;
+
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            light1.shadow.mapSize.width = 1024;
+            light1.shadow.mapSize.height = 1024;
+            light1.shadow.camera.near = 0.5;
+            light1.shadow.camera.far = 50;
+
+            light2.shadow.mapSize.width = 1024;
+            light2.shadow.mapSize.height = 1024;
+            light2.shadow.camera.near = 0.5;
+            light2.shadow.camera.far = 50;
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+            controls.rotateSpeed = 0.5;
+            controls.minDistance = 10;
+            controls.maxDistance = 100000;
+            controls.update();
+
+            function createSphereLabel(text, x, y) {
+                const labelDiv = document.createElement('div');
+                labelDiv.textContent = text;
+                labelDiv.className = 'sphereLabel';
+                document.body.appendChild(labelDiv);
+
+                const stemDiv = document.createElement('div');
+                stemDiv.className = 'labelStem';
+                document.body.appendChild(stemDiv);
+
+                return {
+                    update: function() {
+                        const vector = new THREE.Vector3();
+                        const screenVector = new THREE.Vector3();
+
+                        if (text === 'Neutron') {
+                            vector.setFromMatrixPosition(neutronMesh.matrixWorld);
+                        } else if (text === 'Proton') {
+                            vector.setFromMatrixPosition(protonMesh.matrixWorld);
+                        } else if (text === 'Electron') {
+                            vector.setFromMatrixPosition(electronMesh.matrixWorld);
+                        }
+
+                        vector.project(camera);
+
+                        const widthHalf = window.innerWidth / 2;
+                        const heightHalf = window.innerHeight / 2;
+
+                        const xCoord = vector.x * widthHalf + widthHalf;
+                        const yCoord = -(vector.y * heightHalf) + heightHalf;
+
+                        labelDiv.style.left = xCoord + 'px';
+                        labelDiv.style.top = yCoord + 'px';
+                        labelDiv.style.transform = 'translate(-50%, -50%)';
+
+                        const stemX = xCoord;
+                        const stemY = yCoord;
+                        const stemHeight = y;
+                        stemDiv.style.left = stemX + 'px';
+                        stemDiv.style.top = stemY + 'px';
+                        stemDiv.style.height = stemHeight + 'px';
+                        stemDiv.style.transform = 'translateX(-50%)';
+                    }
+                };
+            }
+
+            const neutronSphereLabel = createSphereLabel('Neutron', -1.2, 2.5);
+            const protonSphereLabel = createSphereLabel('Proton', 1.2, 2.5);
+            const electronSphereLabel = createSphereLabel('Electron', 0, 6);
+
+            const neutronColorPicker = document.getElementById('neutronColorPicker');
+            const protonColorPicker = document.getElementById('protonColorPicker');
+            const electronColorPicker = document.getElementById('electronColorPicker');
+
+            neutronColorPicker.addEventListener('input', function(event) {
+                const neutronColor = event.target.value;
+                neutronMesh.material.color.set(neutronColor);
+            });
+
+            protonColorPicker.addEventListener('input', function(event) {
+                const protonColor = event.target.value;
+                protonMesh.material.color.set(protonColor);
+            });
+
+            electronColorPicker.addEventListener('input', function(event) {
+                const electronColor = event.target.value;
+                electronMesh.material.color.set(electronColor);
+            });
+
+            let time = 0;
+            const animationSpeed = 0.005;
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                neutronMesh.rotation.y += animationSpeed;
+                protonMesh.rotation.y += animationSpeed;
+                electronMesh.position.copy(trajectoryCurve.getPointAt((time / (Math.PI * 2)) % 1));
+                time += animationSpeed;
+
+                controls.update();
+
+                neutronSphereLabel.update();
+                protonSphereLabel.update();
+                electronSphereLabel.update();
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Function to export the scene as a transparent PNG image
+            // Function to export the scene as a transparent PNG image
+function exportAsPNG() {
+  // Set the background color of the renderer to transparent
+  renderer.setClearColor(0x000000, 0);
+
+  // Render the scene
+  renderer.render(scene, camera);
+            // Render the scene with the new clear color (transparent background)
+            renderer.render(scene, camera);
+                // Create a data URL for the image
+                const dataURL = renderer.domElement.toDataURL('image/png');
+
+                // Create an anchor element and set the download attribute
+                const anchor = document.createElement('a');
+                anchor.setAttribute('download', 'atom.png')
+                anchor.setAttribute('href', dataURL);
+
+                // Trigger a click event on the anchor to initiate the download
+                anchor.click();
+
+// Reset  background color of the renderer to indigo
+            renderer.setClearColor(0x000000, 0);
+            }
+
+            // Add a click event listener to the export button
+            const exportButton = document.getElementById('exportButton');
+            exportButton.addEventListener('click', exportAsPNG);
+        });
+    </script>
+</body>
+</html>
